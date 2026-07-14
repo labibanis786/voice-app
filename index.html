@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Master Voice</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(180deg, #E8F5E9 0%, #FFFFFF 300px);
+            color: #1C1C1E; font-family: 'Inter', sans-serif;
+            padding-bottom: 75px; min-height: 100vh;
+        }
+      .page { display: none; }
+      .page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Login */
+      .login-container {
+            background: white; padding: 35px 25px; border-radius: 24px;
+            width: 90%; max-width: 400px; margin: 100px auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        }
+      .login-container h1 { text-align: center; color: #00C853; margin-bottom: 30px; font-size: 28px; font-weight: 700; }
+        input {
+            width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #E0E0E0;
+            border-radius: 16px; font-size: 15px; background: #FAFAFA; transition: all 0.2s;
+        }
+        input:focus { outline: none; border-color: #00C853; background: white; }
+        button {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #00C853, #00E676);
+            color: white; border: none; border-radius: 16px; font-weight: 600; 
+            font-size: 16px; cursor: pointer; margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0,200,83,0.3); transition: transform 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        #loginMsg { text-align: center; margin-top: 15px; min-height: 20px; font-size: 14px; }
+        
+        /* Header */
+      .app-header {
+            background: linear-gradient(135deg, #A5D6A7 0%, #66BB6A 100%);
+            padding: 20px 16px; color: white; position: sticky; top: 0; z-index: 100;
+            border-radius: 0 0 24px 24px; box-shadow: 0 4px 20px rgba(102,187,106,0.3);
+        }
+      .header-top { display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 700; }
+      .header-icons { display: flex; gap: 16px; font-size: 22px; }
+        
+        /* Profile */
+      .profile-card {
+            background: white; margin: 16px; border-radius: 24px; padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+      .profile-top { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+      .profile-photo {
+            width: 72px; height: 72px; border-radius: 50%; background: #E0E0E0;
+            display: flex; align-items: center; justify-content: center; font-size: 32px;
+            overflow: hidden; border: 3px solid #E8F5E9;
+        }
+      .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+      .profile-info h2 { font-size: 22px; margin-bottom: 4px; font-weight: 700; }
+      .profile-id { color: #999; font-size: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #F0F0F0; }
+      .stats-row {
+            display: flex; justify-content: space-around; padding: 18px 0;
+            border-top: 1px solid #F0F0F0; border-bottom: 1px solid #F0F0F0; margin: 16px 0;
+        }
+      .stat { text-align: center; }
+      .stat-num { font-size: 22px; font-weight: 700; color: #1C1C1E; }
+      .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+      .wallet-card {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); color: white; 
+            padding: 22px; border-radius: 20px; margin: 16px 0;
+            box-shadow: 0 6px 20px rgba(76,175,80,0.35); display: flex; justify-content: space-between; align-items: center;
+        }
+      .menu-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 4px; border-bottom: 1px solid #F5F5F5; cursor: pointer;
+        }
+      .menu-left { display: flex; align-items: center; gap: 14px; }
+      .menu-icon { font-size: 24px; width: 28px; }
+      .menu-text { font-size: 15px; font-weight: 500; }
+      .menu-arrow { color: #CCC; font-size: 18px; }
+        
+        /* Home - Room List */
+      .create-room-btn {
+            position: fixed; bottom: 90px; right: 20px; width: 60px; height: 60px;
+            border-radius: 50%; background: linear-gradient(135deg, #00C853, #00E676);
+            color: white; border: none; font-size: 32px; box-shadow: 0 6px 20px rgba(0,200,83,0.4);
+            z-index: 99; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+      .room-list { padding: 16px; }
+      .room-card {
+            background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s;
+            display: flex; gap: 12px; align-items: center;
+        }
+      .room-card:active { transform: scale(0.98); }
+      .room-avatar {
+            width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, #81D4FA, #4FC3F7);
+            display: flex; align-items: center; justify-content: center; font-size: 28px;
+        }
+      .room-details h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+      .room-details p { font-size: 13px; color: #666; }
+        
+        /* Voice Room */
+      .room-header {
+            background: linear-gradient(to bottom, #81D4FA, #E1F5FE);
+            padding: 16px; position: relative; min-height: 400px;
+            border-radius: 0 0 24px 24px;
+        }
+      .room-header-top {
+            display: flex; justify-content: space-between; align-items: center;
+            color: white; margin-bottom: 20px;
+        }
+      .room-title { font-weight: 700; font-size: 18px; }
+      .online-count {
+            background: rgba(0,0,0,0.4); padding: 6px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+        }
+      .seats {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            padding: 24px 8px;
+        }
+      .seat {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: rgba(255,255,255,0.4); border: 3px solid rgba(255,255,255,0.6);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; margin: 0 auto; position: relative; backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+      .seat:active { transform: scale(0.9); }
+      .seat.taken { border-color: #FFD700; background: rgba(255,215,0,0.4); box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+      .seat-photo {
+            width: 54px; height: 54px; border-radius: 50%; background: #BDBDBD;
+            overflow: hidden; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+      .seat-photo img { width: 100%; height: 100%; object-fit: cover; }
+      .seat-name {
+            font-size: 10px; color: white; margin-top: 4px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.6); position: absolute; bottom: -22px;
+            white-space: nowrap; font-weight: 600; max-width: 80px; overflow: hidden; text-overflow: ellipsis;
+        }
+        
+        /* Chat Box */
+      .chat-box {
+            background: white; margin: 16px; border-radius: 20px; padding: 12px;
+            max-height: 200px; overflow-y: auto;
+        }
+      .chat-msg { margin-bottom: 8px; font-size: 14px; }
+      .chat-msg strong { color: #00C853; }
+      .chat-input-row {
+            display: flex; gap: 8px; padding: 0 16px 16px;
+        }
+      .chat-input {
+            flex: 1; padding: 12px; border: 1.5px solid #E0E0E0; border-radius: 20px;
+        }
+      .send-btn {
+            width: 48px; height: 48px; border-radius: 50%; background: #00C853;
+            color: white; border: none; font-size: 20px; cursor: pointer;
+        }
+        
+        /* Bottom Nav - 3 Tabs Only */
+      .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: white;
+            display: flex; justify-content: space-around; padding: 12px 0 8px;
+            border-top: 1px solid #F0F0F0; box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+            z-index: 1000; border-radius: 20px 20px 0 0;
+        }
+      .nav-btn {
+            background: none; border: none; color: #999; font-size: 24px;
+            padding: 6px 30px; cursor: pointer; display: flex; flex-direction: column;
+            align-items: center; gap: 4px; transition: color 0.2s;
+        }
+      .nav-btn span { font-size: 10px; font-weight: 600; }
+      .nav-btn.active { color: #00C853; }
+        
+        /* Create Room Modal */
+      .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;
+        }
+      .modal.active { display: flex; }
+      .modal-content {
+            background: white; border-radius: 24px; padding: 24px; width: 90%; max-width: 400px;
+        }
+      .modal-content h2 { margin-bottom: 20px; font-size: 20px; }
+      .modal-content input { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <h1>🎤 Master Voice</h1>
+            <input type="email" id="loginEmail" placeholder="Email" value="admin@voice.com">
+            <input type="password" id="loginPassword" placeholder="Password" value="admin123">
+            <button onclick="login()">Login</button>
+            <p id="loginMsg"></p>
+        </div>
+    </div>
+
+    <!-- Me/Profile Page -->
+    <div id="mePage" class="page">
+        <div class="app-header">
+            <div class="header-top">
+                <div>Me</div>
+                <div class="header-icons">⋮</div>
+            </div>
+        </div>
+        <div class="profile-card">
+            <div class="profile-top">
+                <div class="profile-photo">
+                    <span id="profileIcon">👤</span>
+                    <img id="profileImg" style="display:none">
+                </div>
+                <div class="profile-info">
+                    <h2 id="userName">User</h2>
+                    <p>View or edit your profile</p>
+                </div>
+            </div>
+            <div class="profile-id">
+                <span>🆔</span>
+                <span id="userIdText">0</span>
+            </div>
+            <div class="stats-row">
+                <div class="stat"><div class="stat-num" id="followers">0</div><div class="stat-label">Followers</div></div>
+                <div class="stat"><div class="stat-num" id="following">0</div><div class="stat-label">Following</div></div>
+                <div class="stat"><div class="stat-num" id="visitors">0</div><div class="stat-label">Visitors</div></div>
+            </div>
+            <div class="wallet-card">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:32px;">💼</span>
+                    <span style="font-size:20px;font-weight:700;">Wallet</span>
+                </div>
+                <span style="font-size:24px;">→</span>
+            </div>
+<div class="menu-item"><div class="menu-left">📦 Title</div>›</div>
+<div class="menu-item"><div class="menu-left">👑 Medal</div>›</div>
+<div class="menu-item"><div class="menu-left">📊 User Level</div>›</div>
+<div class="menu-item" onclick="logout()"><div class="menu-left">⚙️ Settings</div>›</div>
+        
+</div>
+    </div>
+
+    <!-- Home Page -->
+                <span style="font-size:24px;">→</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Page -->
+    <div id="homePage" class="page">
+        <div class="app-header">
+            <div class="header-top">
+                <div>Recommend</div>
+                <div class="header-icons">🔍 🏠</div>
+            </div>
+        </div>
+        <div class="room-list" id="roomList"></div>
+        <button class="create-room-btn" onclick="showCreateRoom()">+</button>
+    </div>
+
+    <!-- Voice Room Page -->
+    <div id="roomPage" class="page">
+        <div class="room-header">
+            <div class="room-header-top">
+                <div>
+                    <span onclick="leaveRoom()" style="font-size:24px;cursor:pointer;">←</span>
+                    <span class="room-title" id="roomName"></span>
+                </div>
+                <div class="online-count">👥 <span id="onlineCount">0</span></div>
+            </div>
+            <div class="seats" id="seats"></div>
+        </div>
+               <button class="mic-btn" id="micBtn" onclick="toggleMic()" style="bottom:160px;">🎤</button>
+        <button class="mic-btn" id="musicBtn" onclick="toggleMusicPlayer()" style="bottom:240px;background:#1db954;">🎵</button>
+ <div class="chat-box" id="chatBox"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <!-- Message Page -->
+    <div id="messagePage" class="page">
+        <div class="app-header">
+            <div class="header-top">
+                <div>Messages</div>
+            </div>
+        </div>
+        <div style="padding:40px;text-align:center;color:#999;">
+            <div style="font-size:60px;margin-bottom:16px;">💬</div>
+            <p>No messages yet</p>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation - 3 Tabs -->
+    <div class="bottom-nav" id="bottomNav" style="display:none;">
+        <button class="nav-btn active" id="navHome" onclick="showPage('home')">
+            <div>🏠</div><span>Home</span>
+        </button>
+        <button class="nav-btn" id="navMessage" onclick="showPage('message')">
+            <div>💬</div><span>Message</span>
+        </button>
+        <button class="nav-btn" id="navMe" onclick="showPage('me')">
+            <div>👤</div><span>Me</span>
+        </button>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div class="modal" id="createRoomModal">
+        <div class="modal-content">
+            <h2>Create New Room</h2>
+            <input type="text" id="newRoomName" placeholder="Room Name" maxlength="20">
+            <button onclick="createRoom()">Create Room</button>
+            <button onclick="closeCreateRoom()" style="background:#999;margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+<script>
+    let socket, user, currentRoom = null;
+
+    function showPage(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(page + 'Page').classList.add('active');
+        
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if(page === 'home') document.getElementById('navHome').classList.add('active');
+        if(page === 'message') document.getElementById('navMessage').classList.add('active');
+        if(page === 'me') document.getElementById('navMe').classList.add('active');
+        
+        if(page === 'home') loadRooms();
+    }
+
+    async function login(){
+        const msg = document.getElementById('loginMsg');
+        msg.textContent = 'Logging in...';
+        msg.style.color = '#00C853';
+        
+        try {
+            const r = await fetch('/api/auth/login',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    email:document.getElementById('loginEmail').value,
+                    password:document.getElementById('loginPassword').value
+                })
+            });
+            const d = await r.json();
+            
+            if(d.success){
+                user = d.user;
+                localStorage.setItem('user', JSON.stringify(user));
+                initApp();
+            } else {
+                msg.textContent = d.message;
+                msg.style.color = '#F44336';
+            }
+        } catch(err) {
+            msg.textContent = 'Server Error!';
+            msg.style.color = '#F44336';
+        }
+    }
+
+    function initApp(){
+        document.getElementById('loginPage').classList.remove('active');
+        document.getElementById('bottomNav').style.display = 'flex';
+        updateProfile();
+        showPage('me');
+        connectSocket();
+    }
+
+    function updateProfile(){
+        document.getElementById('userName').textContent = user.name;
+        document.getElementById('userIdText').textContent = user.userId;
+        document.getElementById('followers').textContent = user.followers;
+        document.getElementById('following').textContent = user.following;
+        document.getElementById('visitors').textContent = user.visitors;
+    }
+
+    function connectSocket(){
+        socket = io();
+        
+        socket.on('room-list', (rooms) => {
+            const roomList = document.getElementById('roomList');
+            roomList.innerHTML = '';
+            rooms.forEach(room => {
+                const card = document.createElement('div');
+                card.className = 'room-card';
+                card.onclick = () => joinRoom(room.roomId);
+                card.innerHTML = `
+                    <div class="room-avatar">🎤</div>
+                    <div class="room-details">
+                        <h3>${room.roomName}</h3>
+                        <p>👥 ${room.onlineCount} online • Host: ${room.hostName}</p>
+                    </div>
+                `;
+                roomList.appendChild(card);
+            });
+        });
+
+        socket.on('room-state', (data) => {
+            document.getElementById('roomName').textContent = data.roomName;
+            renderSeats(data.seats);
+            data.messages.forEach(m => addChatMessage(m));
+        });
+
+        socket.on('seat-update', (data) => {
+            const seatEl = document.getElementById(`seat-${data.seatNumber}`);
+            if(data.action === 'take'){
+                seatEl.innerHTML = `
+                    <div class="seat-photo">${data.userPhoto? `<img src="${data.userPhoto}">` : '👤'}</div>
+                    <div class="seat-name">${data.userName}</div>
+                `;
+                seatEl.classList.add('taken');
+            } else {
+                seatEl.innerHTML = '<div style="font-size:30px;color:white;">+</div>';
+                seatEl.classList.remove('taken');
+            }
+        });
+
+        socket.on('user-count', (data) => {
+            document.getElementById('onlineCount').textContent = data.count;
+        });
+
+        socket.on('new-message', (msg) => {
+            addChatMessage(msg);
+        });        socket.on('voice-offer', async (data) => {
+            const peer = createPeerConnection(data.from);
+            await peer.setRemoteDescription(data.offer);
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+            socket.emit('voice-answer', { target: data.from, answer: answer });
+        });
+
+        socket.on('voice-answer', async (data) => {
+            const peer = peerConnections[data.from];
+            if(peer){
+                await peer.setRemoteDescription(data.answer);
+            }
+        });
+
+        socket.on('voice-candidate', async (data) => {
+            const peer = peerConnections[data.from];
+            if(peer){
+                await peer.addIceCandidate(data.candidate);
+            }
+        });
+    }    let localStream = null;
+    let peerConnections = {};
+
+    async function startVoice(){
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            console.log('✅ Mic started');
+        } catch(err){
+            console.error('❌ Mic error:', err);
+            alert('Mic permission দাও!');
+        }
+    }
+
+    function stopVoice(){
+        if(localStream){
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        Object.values(peerConnections).forEach(pc => pc.close());
+        peerConnections = {};
+        console.log('🔇 Mic stopped');
+    }
+
+    function createPeerConnection(targetUserId){
+        const peer = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        });
+
+        if(localStream){
+            localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+        }
+
+        peer.ontrack = (event) => {
+            console.log('✅ Got remote stream from:', targetUserId);
+            let audio = document.getElementById('audio-' + targetUserId);
+            if(!audio){
+                audio = document.createElement('audio');
+                audio.id = 'audio-' + targetUserId;
+                audio.autoplay = true;
+                document.body.appendChild(audio);
+            }
+            audio.srcObject = event.streams[0];
+        };
+
+        peer.onicecandidate = (event) => {
+            if(event.candidate){
+                socket.emit('voice-candidate', {
+                    target: targetUserId,
+                    candidate: event.candidate
+                });
+            }
+        };
+
+        peerConnections[targetUserId] = peer;
+        return peer;
+    }
+
+    async function createOffer(targetUserId){
+        if(!localStream) return;
+        const peer = createPeerConnection(targetUserId);
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        socket.emit('voice-offer', { target: targetUserId, offer: offer });
+    }
+
+    function callAllUsersInSeats(){
+        const seats = document.querySelectorAll('.seat.taken');
+        seats.forEach(seat => {
+            const userId = seat.getAttribute('data-userid');
+            if(userId && userId!== user.userId){
+                createOffer(userId);
+            }
+        });
+    }
+
+    function loadRooms(){
+        socket.emit('get-rooms');
+    }
+
+    function showCreateRoom(){
+        document.getElementById('createRoomModal').classList.add('active');
+    }
+
+    function closeCreateRoom(){
+        document.getElementById('createRoomModal').classList.remove('active');
+        document.getElementById('newRoomName').value = '';
+    }
+
+    async function createRoom(){
+        const roomName = document.getElementById('newRoomName').value.trim();
+        if(!roomName) {
+            alert('Please enter room name');
+            return;
+        }
+        
+        const r = await fetch('/api/room/create', {
+            method: 'POST',
+            h

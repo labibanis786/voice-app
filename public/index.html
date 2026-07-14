@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Voice</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#f0f0;padding-bottom:70px}.page{display:none}.page.active{display:block}.login-container{background:white;padding:30px;border-radius:20px;width:90%;max-width:400px;margin:100px auto}h1{text-align:center;color:#00C853;margin-bottom:20px}input{width:100%;padding:15px;margin:10px 0;border:1px solid #ddd;border-radius:10px}button{width:100%;padding:15px;background:#00C853;color:white;border:none;border-radius:10px;font-size:16px;margin-top:10px}.app-header{background:#66BB6A;padding:20px;color:white;font-size:20px;font-weight:700}.profile-card{background:white;margin:15px;padding:20px;border-radius:20px}.profile-top{display:flex;gap:15px;align-items:center}.profile-photo{width:70px;height:70px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;font-size:30px}.stats-row{display:flex;justify-content:space-around;padding:15px 0;border-top:1px solid #eee;margin:15px 0}.stat{text-align:center}.room-list{padding:15px}.room-card{background:white;padding:15px;border-radius:15px;margin-bottom:10px;cursor:pointer}.room-header{background:lightblue;padding:15px;min-height:350px}.seats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;padding:20px}.seat{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.5);border:3px solid white;display:flex;align-items:center;justify-content:center;margin:0 auto}.seat.taken{border-color:gold}.mic-btn{position:fixed;bottom:160px;left:50%;transform:translateX(-50%);width:70px;height:70px;border-radius:50%;background:#F44336;color:white;border:none;font-size:30px}.mic-btn.active{background:#00C853}.chat-box{background:white;margin:15px;padding:10px;border-radius:15px;max-height:150px;overflow-y:auto}.chat-input-row{display:flex;gap:8px;padding:0 15px}.chat-input{flex:1;padding:12px;border:1px solid #ddd;border-radius:20px}.send-btn{width:45px;height:45px;border-radius:50%;background:#00C853;color:white;border:none}.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px;border-top:1px solid #eee}.nav-btn{background:none;border:none;font-size:24px;color:#999}.nav-btn.active{color:#00C853}.create-room-btn{position:fixed;bottom:90px;right:20px;width:60px;height:60px;border-radius:50%;background:#00C853;color:white;border:none;font-size:30px}.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}.modal.active{display:flex}.modal-content{background:white;padding:20px;border-radius:20px;width:90%}
+    </style>
+</head>
+<body>
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <h1>🎤 Master Voice</h1>
+            <div id="mobileStep">
+                <input type="tel" id="loginMobile" placeholder="10 Digit Mobile" maxlength="10">
+                <button onclick="sendOTP()">Send OTP</button>
+            </div>
+            <div id="otpStep" style="display:none">
+                <input type="number" id="loginOTP" placeholder="6 Digit OTP" maxlength="6">
+                <button onclick="verifyOTP()">Verify & Login</button>
+                <button onclick="backToMobile()" style="background:#999">Back</button>
+            </div>
+            <p id="loginMsg" style="text-align:center;margin-top:15px"></p>
+        </div>
+    </div>
+    <div id="mePage" class="page">
+        <div class="app-header">Me</div>
+        <div class="profile-card">
+            <div class="profile-top">
+                <div class="profile-photo">👤</div>
+                <div><h2 id="userName">User</h2><p id="userMobile"></p></div>
+            </div>
+            <p style="color:#999;margin-top:10px">🆔 <span id="userIdText">0</span></p>
+            <div class="stats-row">
+                <div class="stat"><div id="followers" style="font-size:20px;font-weight:700">0</div><div style="font-size:12px;color:#999">Followers</div></div>
+                <div class="stat"><div id="following" style="font-size:20px;font-weight:700">0</div><div style="font-size:12px;color:#999">Following</div></div>
+                <div class="stat"><div id="visitors" style="font-size:20px;font-weight:700">0</div><div style="font-size:12px;color:#999">Visitors</div></div>
+            </div>
+            <button onclick="logout()" style="background:#F44336">Logout</button>
+        </div>
+    </div>
+    <div id="homePage" class="page">
+        <div class="app-header">Recommend</div>
+        <div class="room-list" id="roomList"></div>
+        <button class="create-room-btn" onclick="showCreateRoom()">+</button>
+    </div>
+    <div id="roomPage" class="page">
+        <div class="room-header">
+            <div style="display:flex;justify-content:space-between;color:white;margin-bottom:20px">
+                <div><span onclick="leaveRoom()" style="font-size:24px;cursor:pointer">←</span> <span id="roomName" style="font-weight:700"></span></div>
+                <div style="background:rgba(0,0,0,0.4);padding:5px 12px;border-radius:15px">👥 <span id="onlineCount">0</span></div>
+            </div>
+            <div class="seats" id="seats"></div>
+        </div>
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+
+<div id="voiceSignal">🔴</div>
+
+<div class="chat-box" id="chatBox"></div>
+
+<div class="chat-box" id="chatBox"></div>
+        <div class="chat-box" id="chatBox"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+    <div id="messagePage" class="page">
+        <div class="app-header">Messages</div>
+        <div style="padding:40px;text-align:center;color:#999">💬<br>No messages</div>
+    </div>
+    <div class="bottom-nav" id="bottomNav" style="display:none">
+        <button class="nav-btn active" id="navHome" onclick="showPage('home')">🏠</button>
+        <button class="nav-btn" id="navMessage" onclick="showPage('message')">💬</button>
+        <button class="nav-btn" id="navMe" onclick="showPage('me')">👤</button>
+    </div>
+    <div class="modal" id="createRoomModal">
+        <div class="modal-content">
+            <h2>Create Room</h2>
+            <input type="text" id="newRoomName" placeholder="Room Name">
+            <button onclick="createRoom()">Create</button>
+            <button onclick="closeCreateRoom()" style="background:#999">Cancel</button>
+        </div>
+    </div>
+<script>
+let socket,user,currentRoom=null,localStream=null,peerConnections={},micEnabled=false;
+function showPage(p){document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById(p+'Page').classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav'+p.charAt(0).toUpperCase()+p.slice(1)).classList.add('active');if(p==='home')loadRooms()}
+async function sendOTP(){const m=document.getElementById('loginMsg'),n=document.getElementById('loginMobile').value;if(n.length!==10){m.textContent='10 digit দাও';return}const r=await fetch('/api/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:n})});const d=await r.json();if(d.success){m.textContent='OTP Termux দেখো';document.getElementById('mobileStep').style.display='none';document.getElementById('otpStep').style.display='block'}else m.textContent=d.message}
+function backToMobile(){document.getElementById('mobileStep').style.display='block';document.getElementById('otpStep').style.display='none'}
+async function verifyOTP(){const n=document.getElementById('loginMobile').value,o=document.getElementById('loginOTP').value;const r=await fetch('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mobile:n,otp:o})});const d=await r.json();if(d.success){user=d.user;localStorage.setItem('user',JSON.stringify(user));initApp()}else document.getElementById('loginMsg').textContent=d.message}
+function initApp(){document.getElementById('loginPage').classList.remove('active');document.getElementById('bottomNav').style.display='flex';updateProfile();showPage('me');connectSocket()}
+function updateProfile(){document.getElementById('userName').textContent=user.name;document.getElementById('userMobile').textContent='+91 '+user.mobile;document.getElementById('userIdText').textContent=user.userId}
+function connectSocket(){socket=io();socket.on('room-list',r=>{const l=document.getElementById('roomList');l.innerHTML='';r.forEach(x=>{const c=document.createElement('div');c.className='room-card';c.onclick=()=>joinRoom(x.roomId);c.innerHTML=`<div style="width:50px;height:50px;background:lightblue;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🎤</div><div><h3>${x.roomName}</h3><p>👥 ${x.onlineCount} online</p></div>`;l.appendChild(c)})});socket.on('room-state',d=>{document.getElementById('roomName').textContent=d.roomName;renderSeats(d.seats);document.getElementById('chatBox').innerHTML='';d.messages.forEach(addChatMessage)});socket.on('seat-update',d=>{const s=document.getElementById(`seat-${d.seatNumber}`);if(d.action==='take'){s.innerHTML=`<div style="width:50px;height:50px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center">👤</div><div style="font-size:10px;color:white;position:absolute;bottom:-20px">${d.userName}</div>`;s.classList.add('taken')}else{s.innerHTML='+';s.classList.remove('taken')}});socket.on('user-count',d=>document.getElementById('onlineCount').textContent=d.count);socket.on('new-message',addChatMessage);socket.on('voice-offer',async d=>{const p=createPeer(d.from);await p.setRemoteDescription(new RTCSessionDescription(d.offer));const a=await p.createAnswer();await p.setLocalDescription(a);socket.emit('voice-answer',{target:d.from,answer:a})});socket.on('voice-answer',async d=>{const p=peerConnections[d.from];if(p)await p.setRemoteDescription(new RTCSessionDescription(d.answer))});socket.on('voice-candidate',d=>{const p=peerConnections[d.from];if(p)p.addIceCandidate(new RTCIceCandidate(d.candidate))})}
+function renderSeats(s){const d=document.getElementById('seats');d.innerHTML='';for(let i=0;i<8;i++){const e=document.createElement('div');e.className='seat';e.id=`seat-${i+1}`;e.onclick=()=>takeSeat(i+1);if(s[i]){e.classList.add('taken');e.innerHTML=`<div style="width:50px;height:50px;border-radius:50%;background:#ccc;display:flex;align-items:center;justify-content:center">👤</div><div style="font-size:10px;color:white;position:absolute;bottom:-20px">${s[i].userName}</div>`}else e.innerHTML='+';d.appendChild(e)}}
+function loadRooms(){socket.emit('get-rooms')}
+function joinRoom(r){currentRoom=r;socket.emit('join-room',{roomId:r,userId:user.userId,userName:user.name,userPhoto:user.photo});showPage('room')}
+function leaveRoom(){if(currentRoom){socket.emit('leave-room',{roomId:currentRoom,userId:user.userId});currentRoom=null;stopMic()}showPage('home')}
+function takeSeat(n){if(currentRoom)socket.emit('take-seat',{roomId:currentRoom,seatNumber:n})}
+function sendMessage(){const i=document.getElementById('chatInput'),m=i.value.trim();if(m&&currentRoom){socket.emit('send-message',{roomId:currentRoom,message:m});i.value=''}}
+function addChatMessage(m){const c=document.getElementById('chatBox'),d=document.createElement('div');d.className='chat-msg';d.innerHTML=`<strong>${m.userName}:</strong> ${m.message}`;c.appendChild(d);c.scrollTop=c.scrollHeight}
+function showCreateRoom(){document.getElementById('createRoomModal').classList.add('active')}
+function closeCreateRoom(){document.getElementById('createRoomModal').classList.remove('active')}
+async function createRoom(){const n=document.getElementById('newRoomName').value;if(!n)return;await fetch('/api/room/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomName:n,userId:user.userId,userName:user.name})});closeCreateRoom();document.getElementById('newRoomName').value=''}
+async function toggleMic(){micEnabled?stopMic():await startMic()}
+async function startMic(){try{localStream=await navigator.mediaDevices.getUserMedia({audio:true});let audioContext = new AudioContext();
+let analyser = audioContext.createAnalyser();
+let source = audioContext.createMediaStreamSource(localStream);
+
+source.connect(analyser);
+
+let data = new Uint8Array(analyser.frequencyBinCount);
+
+function checkVoice(){
+analyser.getByteFrequencyData(data);
+
+let volume = data.reduce((a,b)=>a+b)/data.length;
+
+let signal = document.getElementById("voiceSignal");
+
+if(signal){
+signal.textContent = volume > 15 ? "🟢" : "🔴";
+}
+
+requestAnimationFrame(checkVoice);
+}
+
+checkVoice();micEnabled=true;document.getElementById('micBtn').classList.add('active');document.getElementById('micBtn').textContent='🔊';document.querySelectorAll('.seat.taken').forEach(s=>{const n=s.querySelector('div:last-child')?.textContent;if(n&&n!==user.name)connectToPeer(n)})}catch(e){alert('Mic permission দাও')}}
+function stopMic(){if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}micEnabled=false;document.getElementById('micBtn').classList.remove('active');document.getElementById('micBtn').textContent='🎤';Object.values(peerConnections).forEach(p=>p.close());peerConnections={}}
+function createPeer(id){const p=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});peerConnections[id]=p;if(localStream)localStream.getTracks().forEach(t=>p.addTrack(t,localStream));p.ontrack=e=>{const a=new Audio();a.srcObject=e.streams[0];a.play()};p.onicecandidate=e=>{if(e.candidate)socket.emit('voice-candidate',{target:id,candidate:e.candidate})};return p}
+async function connectToPeer(id){const p=createPeer(id),o=await p.createOffer();await p.setLocalDescription(o);socket.emit('voice-offer',{target:id,offer:o})}
+function logout(){localStorage.removeItem('user');location.reload()}
+const saved=localStorage.getItem('user');if(saved){user=JSON.parse(saved);initApp()}
+</script>
+</body>
+</html>
