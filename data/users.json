@@ -1,0 +1,38 @@
+{
+  "9832389581": {
+    "userId": "501",
+    "name": "User_501",
+    "mobile": "9832389581",
+    "photo": "",
+    "followers": 0,
+    "following": 0,
+    "visitors": 0,
+    "coins": 100,
+    "level": 1,
+    "vipLevel": 0
+  },
+  "8101221193": {
+    "userId": "502",
+    "name": "User_502",
+    "mobile": "8101221193",
+    "photo": "",
+    "followers": 0,
+    "following": 0,
+    "visitors": 0,
+    "coins": 100,
+    "level": 1,
+    "vipLevel": 0
+  },
+  "7479283303": {
+    "userId": "503",
+    "name": "User_503",
+    "mobile": "7479283303",
+    "photo": "",
+    "followers": 0,
+    "following": 0,
+    "visitors": 0,
+    "coins": 100,
+    "level": 1,
+    "vipLevel": 0
+  }
+}

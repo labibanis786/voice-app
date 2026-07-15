@@ -201,12 +201,12 @@ io.to(roomId).emit("user-count", {
             }
         });
 
-room.seats[seatNumber - 1] = {
-    userId: socket.userId,
-    userName: socket.userName,
-    userPhoto: socket.userPhoto,
-    socketId: socket.id
-};        
+        room.seats[seatNumber - 1] = {
+            userId: socket.userId,
+            userName: socket.userName,
+            userPhoto: socket.userPhoto
+        };
+        
         console.log(`✅ ${socket.userName} took seat ${seatNumber}`);
 io.to(roomId).emit("seat-update", {
     seatNumber,
